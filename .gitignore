@@ -1,0 +1,20 @@
+# ===== FRONTEND =====
+frontend/node_modules
+frontend/dist
+frontend/.vite
+frontend/.env
+
+# ===== BACKEND =====
+backend/target
+backend/.env
+
+# ===== DOCKER =====
+postgres_data
+*.log
+
+# ===== IDE =====
+.vscode/
+.idea/
+
+# ===== macOS =====
+.DS_Store
