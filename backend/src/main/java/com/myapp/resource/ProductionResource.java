@@ -6,6 +6,7 @@ import com.myapp.service.ProductionService;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+
 import java.util.List;
 
 @Path("/production")
@@ -16,15 +17,16 @@ public class ProductionResource {
     @Inject
     ProductionService service;
 
-    // PREVIEW (não desconta estoque)
+    // PREVIEW - does not change stock
     @GET
     @Path("/preview")
     public List<ProductionResponseDTO> preview() {
         return service.calculateProduction(false);
     }
 
-    // EXECUTA (desconta estoque)
+    // EXECUTE - deducts stock
     @POST
+    @Path("/execute")
     public List<ProductionResponseDTO> execute() {
         return service.calculateProduction(true);
     }
