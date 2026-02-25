@@ -1,40 +1,90 @@
 import React, { useEffect, useState } from 'react';
 import axiosInstance from '../api/axiosInstance';
 import Layout from '../components/Layout';
-import { Table, TableBody, TableCell, TableHead, TableRow, Button, Typography } from '@mui/material';
+import ProductionForm from '../components/ProductionForm';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableRow, 
+  Button, 
+  Typography 
+} from '@mui/material';
 
 export default function Production() {
   const [productionList, setProductionList] = useState([]);
+  const [associations, setAssociations] = useState([]);
+
+  const fetchAssociations = async () => {
+    const res = await axiosInstance.get('/product-materials');
+    setAssociations(res.data);
+  };
+
+  useEffect(() => {
+    fetchProduction();
+    fetchAssociations();
+  }, []);
 
   const fetchProduction = async () => {
     const res = await axiosInstance.get('/production/preview');
     setProductionList(res.data);
   };
 
-  useEffect(() => { fetchProduction(); }, []);
+  const executeProduction = async () => {
+    await axiosInstance.post('/production');
+    fetchProduction();
+  };
 
   return (
     <Layout>
-      <Typography variant="h5" sx={{ mb: 2 }}>Suggested Production</Typography>
-      <Button variant="contained" onClick={fetchProduction} sx={{ mb: 2 }}>Refresh</Button>
-      <Table>
+
+      <ProductionForm onSaved={fetchProduction} />
+
+      <Typography variant="h5" sx={{ mt: 4, mb: 2 }}>
+        Suggested Production
+      </Typography>
+
+      <Button 
+        variant="contained" 
+        onClick={fetchProduction} 
+        sx={{ mr: 2 }}
+      >
+        Refresh
+      </Button>
+
+      <Button 
+        variant="contained" 
+        color="success"
+        onClick={executeProduction}
+      >
+        Execute Production
+      </Button>
+
+      <Table sx={{ mt: 2 }}>
         <TableHead>
           <TableRow>
+            <TableCell>Product Code</TableCell>
             <TableCell>Product</TableCell>
             <TableCell>Quantity</TableCell>
             <TableCell>Total Value</TableCell>
           </TableRow>
         </TableHead>
+
         <TableBody>
           {productionList.map(p => (
             <TableRow key={p.productId}>
-              <TableCell>{p.name}</TableCell>
-              <TableCell>{p.maxQuantity}</TableCell>
-              <TableCell>${p.totalValue.toFixed(2)}</TableCell>
+              <TableCell>{p.productCode}</TableCell>
+              <TableCell>{p.productName}</TableCell>
+              <TableCell>{p.quantityToProduce}</TableCell>
+              <TableCell>
+                ${Number(p.totalValue).toFixed(2)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
     </Layout>
   );
 }
