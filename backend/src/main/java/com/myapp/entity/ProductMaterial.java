@@ -3,6 +3,8 @@ package com.myapp.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "product_material")
 public class ProductMaterial {
@@ -12,12 +14,14 @@ public class ProductMaterial {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @JoinColumn(name = "product_id")
+    @JsonIgnore
+    public Product product;
 
     @ManyToOne
-    @JoinColumn(name = "raw_material_id", nullable = false)
-    private RawMaterial rawMaterial;
+    @JoinColumn(name = "raw_material_id")
+    @JsonIgnore
+    public RawMaterial rawMaterial;
 
     @Column(nullable = false)
     private BigDecimal requiredQuantity;
