@@ -3,23 +3,41 @@ import { createRawMaterial, updateRawMaterial } from '../api/rawMaterialApi';
 import { TextField, Button, Typography, Grid } from '@mui/material';
 
 export default function RawMaterialForm({ onSaved, editingMaterial }) {
+  const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [quantity, setQuantity] = useState(0);
+  const [stockQuantity, setStockQuantity] = useState(0);
 
   useEffect(() => {
     if (editingMaterial) {
-      setName(editingMaterial.name);
-      setQuantity(editingMaterial.quantity);
+      setCode(editingMaterial.code || '');
+      setName(editingMaterial.name || '');
+      setStockQuantity(editingMaterial.stockQuantity ?? 0);
+    } else {
+      resetForm();
     }
   }, [editingMaterial]);
 
+  const resetForm = () => {
+    setCode('');
+    setName('');
+    setStockQuantity(0);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const material = { name, quantity };
-    if (editingMaterial) await updateRawMaterial(editingMaterial.id, material);
-    else await createRawMaterial(material);
-    setName('');
-    setQuantity(0);
+
+    const material = {
+      code,
+      name,
+      stockQuantity: parseFloat(stockQuantity)
+    };
+
+    if (editingMaterial)
+      await updateRawMaterial(editingMaterial.id, material);
+    else
+      await createRawMaterial(material);
+
+    resetForm();
     onSaved();
   };
 
@@ -28,27 +46,40 @@ export default function RawMaterialForm({ onSaved, editingMaterial }) {
       <Typography variant="h6" sx={{ mb: 2 }}>
         {editingMaterial ? 'Edit Material' : 'Add Material'}
       </Typography>
+
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid xs={12} md={6}>
-          <TextField 
+        <Grid item xs={12} md={4}>
+          <TextField
             fullWidth
-            label="Material Name" 
-            value={name} 
-            onChange={e => setName(e.target.value)} 
+            label="Material Code"
+            value={code}
+            onChange={e => setCode(e.target.value)}
             required
           />
         </Grid>
-        <Grid xs={12} md={6}>
-          <TextField 
+
+        <Grid item xs={12} md={4}>
+          <TextField
+            fullWidth
+            label="Material Name"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required
+          />
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <TextField
             fullWidth
             type="number"
-            label="Quantity" 
-            value={quantity} 
-            onChange={e => setQuantity(e.target.value)} 
+            label="Stock Quantity"
+            value={stockQuantity}
+            onChange={e => setStockQuantity(e.target.value)}
             required
           />
         </Grid>
       </Grid>
+
       <Button variant="contained" color="primary" type="submit">
         {editingMaterial ? 'Update' : 'Add'} Material
       </Button>
