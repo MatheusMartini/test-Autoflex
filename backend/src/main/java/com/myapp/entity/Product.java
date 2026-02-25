@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "product")
 public class Product {
@@ -28,6 +30,7 @@ public class Product {
         orphanRemoval = true,
         fetch = FetchType.LAZY
     )
+    @JsonIgnore
     private List<ProductMaterial> materials = new ArrayList<>();
 
     // GETTERS
