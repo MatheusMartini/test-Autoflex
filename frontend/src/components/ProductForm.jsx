@@ -1,40 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { createProduct, updateProduct } from '../api/productApi';
-import { getRawMaterials } from '../api/rawMaterialApi';
 import { TextField, Button, Grid, Typography } from '@mui/material';
 
-export default function ProductForm({ onSaved, editingProduct }) {
+export default function ProductForm({ onSaved, editingProduct, onCancel }) {
+  const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [value, setValue] = useState(0);
-  const [materials, setMaterials] = useState([]);
-  const [selectedMaterials, setSelectedMaterials] = useState({});
+  const [price, setPrice] = useState(0);
 
   useEffect(() => {
-    getRawMaterials().then(res => setMaterials(res.data));
     if (editingProduct) {
-      setName(editingProduct.name);
-      setValue(editingProduct.value);
-      const map = {};
-      editingProduct.materials?.forEach(m => map[m.id] = m.quantity);
-      setSelectedMaterials(map);
+      setCode(editingProduct.code || '');
+      setName(editingProduct.name || '');
+      setPrice(editingProduct.price ?? 0);
+    } else {
+      resetForm();
     }
   }, [editingProduct]);
 
+  const resetForm = () => {
+    setCode('');
+    setName('');
+    setPrice(0);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const product = {
+      code,
       name,
-      value,
-      materials: Object.entries(selectedMaterials).map(([id, quantity]) => ({
-        id: parseInt(id),
-        quantity: parseFloat(quantity)
-      }))
+      price: parseFloat(price)
     };
-    if (editingProduct) await updateProduct(editingProduct.id, product);
-    else await createProduct(product);
-    setName('');
-    setValue(0);
-    setSelectedMaterials({});
+
+    if (editingProduct) {
+      await updateProduct(editingProduct.id, product);
+    } else {
+      await createProduct(product);
+    }
+    resetForm();
     onSaved();
   };
 
@@ -43,8 +46,19 @@ export default function ProductForm({ onSaved, editingProduct }) {
       <Typography variant="h6" sx={{ mb: 2 }}>
         {editingProduct ? 'Edit Product' : 'Add Product'}
       </Typography>
+
       <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid xs={12} md={6}>
+        <Grid xs={12} md={4}>
+          <TextField 
+            fullWidth
+            label="Product Code"
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            required
+          />
+        </Grid>
+
+        <Grid xs={12} md={4}>
           <TextField 
             fullWidth
             label="Product Name" 
@@ -53,31 +67,17 @@ export default function ProductForm({ onSaved, editingProduct }) {
             required
           />
         </Grid>
-        <Grid xs={12} md={6}>
+
+        <Grid xs={12} md={4}>
           <TextField 
             fullWidth
             type="number"
-            label="Value" 
-            value={value} 
-            onChange={e => setValue(e.target.value)} 
+            label="Price" 
+            value={price} 
+            onChange={e => setPrice(e.target.value)} 
             required
           />
         </Grid>
-      </Grid>
-
-      <Typography variant="subtitle1">Raw Materials</Typography>
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        {materials.map(m => (
-          <Grid xs={12} md={4} key={m.id}>
-            <TextField
-              fullWidth
-              label={m.name}
-              type="number"
-              value={selectedMaterials[m.id] || ''}
-              onChange={e => setSelectedMaterials({ ...selectedMaterials, [m.id]: e.target.value })}
-            />
-          </Grid>
-        ))}
       </Grid>
 
       <Button variant="contained" color="primary" type="submit">
