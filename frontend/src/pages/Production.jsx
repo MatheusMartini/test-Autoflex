@@ -397,6 +397,7 @@ export default function Production() {
               <TableRow>
                 <TableCell>Product Code</TableCell>
                 <TableCell>Product</TableCell>
+                <TableCell align="right">Unit Price</TableCell>
                 <TableCell align="right">Quantity</TableCell>
                 <TableCell align="right">Total Value</TableCell>
               </TableRow>
@@ -406,6 +407,7 @@ export default function Production() {
                 <TableRow key={it.productId ?? `${it.productCode}-${it.productName}`}>
                   <TableCell>{it.productCode}</TableCell>
                   <TableCell>{it.productName}</TableCell>
+                  <TableCell align="right">{it.unitPrice}</TableCell>
                   <TableCell align="right">{it.maxQuantity ?? it.quantity ?? 0}</TableCell>
                   <TableCell align="right">
                     {currency.format(Number(it.totalValue) || 0)}
