@@ -70,6 +70,10 @@ public class ProductService {
         Product product = repository.findByIdOptional(id)
                 .orElseThrow(() -> new NotFoundException("Product not found"));
 
+        if (repository.isUsedInProductionRuns(id)) {
+            throw new ConflictException("Cannot delete product because it is used in production history");
+        }
+
         repository.delete(product);
     }
 }

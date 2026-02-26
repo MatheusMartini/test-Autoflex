@@ -3,15 +3,20 @@ import { getProducts, deleteProduct } from '../api/productApi';
 import ProductForm from '../components/ProductForm';
 import Layout from '../components/Layout';
 import { DataGrid } from '@mui/x-data-grid';
-import { Button } from '@mui/material';
+import { Alert, Button } from '@mui/material';
 
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [error, setError] = useState('');
 
   const fetchProducts = async () => {
-    const res = await getProducts();
-    setProducts(res.data);
+    try {
+      const res = await getProducts();
+      setProducts(res.data);
+    } catch (e) {
+      setError(e?.response?.data?.message || 'Failed to load products.');
+    }
   };
 
   useEffect(() => {
@@ -43,8 +48,13 @@ export default function Products() {
             size="small"
             color="error"
             onClick={async () => {
-              await deleteProduct(params.row.id);
-              fetchProducts();
+              setError('');
+              try {
+                await deleteProduct(params.row.id);
+                fetchProducts();
+              } catch (e) {
+                setError(e?.response?.data?.message || 'Failed to delete product.');
+              }
             }}
           >
             Delete
@@ -56,10 +66,16 @@ export default function Products() {
 
   return (
     <Layout>
+    {error && (
+      <Alert severity="error" sx={{ mb: 2 }}>
+        {error}
+      </Alert>
+    )}
     <ProductForm
       onSaved={() => {
         fetchProducts();
-        setEditingProduct(null); 
+        setEditingProduct(null);
+        setError('');
       }}
       editingProduct={editingProduct}
       />

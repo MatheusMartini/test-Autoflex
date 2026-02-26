@@ -22,6 +22,17 @@ public class ProductRepository implements PanacheRepository<Product> {
         return count("code = ?1 and id <> ?2", code, id) > 0;
     }
 
+    public boolean isUsedInProductionRuns(Long productId) {
+        Long count = getEntityManager()
+                .createQuery(
+                        "SELECT COUNT(ri) FROM ProductionRunItem ri WHERE ri.product.id = :productId",
+                        Long.class
+                )
+                .setParameter("productId", productId)
+                .getSingleResult();
+        return count != null && count > 0;
+    }
+
     public List<Product> findAllWithMaterials() {
         return getEntityManager()
                 .createQuery(
