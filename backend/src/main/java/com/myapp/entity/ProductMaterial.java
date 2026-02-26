@@ -6,27 +6,39 @@ import java.math.BigDecimal;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
-@Table(name = "product_material")
+@Table(
+        name = "product_material",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_product_material_product_raw",
+                        columnNames = {"product_id", "raw_material_id"}
+                )
+        },
+        indexes = {
+                @Index(name = "idx_product_material_product_id", columnList = "product_id"),
+                @Index(name = "idx_product_material_raw_material_id", columnList = "raw_material_id")
+        }
+)
 public class ProductMaterial {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "product_id")
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnore
-    public Product product;
+    private Product product;
 
-    @ManyToOne
-    @JoinColumn(name = "raw_material_id")
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "raw_material_id", nullable = false)
     @JsonIgnore
-    public RawMaterial rawMaterial;
+    private RawMaterial rawMaterial;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal requiredQuantity;
 
-    // GETTERS
+    // getters
 
     public Long getId() {
         return id;
@@ -44,7 +56,7 @@ public class ProductMaterial {
         return requiredQuantity;
     }
 
-    // SETTERS
+    // setters
 
     public void setProduct(Product product) {
         this.product = product;
