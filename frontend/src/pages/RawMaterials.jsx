@@ -3,18 +3,23 @@ import { getRawMaterials, deleteRawMaterial } from '../api/rawMaterialApi';
 import RawMaterialForm from '../components/RawMaterialForm';
 import Layout from '../components/Layout';
 import { DataGrid } from '@mui/x-data-grid';
-import { Button } from '@mui/material';
+import { Alert, Button } from '@mui/material';
 
 export default function RawMaterials() {
   const [materials, setMaterials] = useState([]);
   const [editingMaterial, setEditingMaterial] = useState(null);
+  const [error, setError] = useState('');
+
+  const getErrorMessage = (e, fallback) =>
+    e?.response?.data?.message || fallback;
 
   const fetchMaterials = async () => {
     try {
       const res = await getRawMaterials();
       setMaterials(res.data);
+      setError('');
     } catch (error) {
-      console.error("Erro ao buscar materiais:", error);
+      setError(getErrorMessage(error, 'Failed to load raw materials.'));
     }
   };
 
@@ -47,8 +52,13 @@ export default function RawMaterials() {
             size="small"
             color="error"
             onClick={async () => {
-              await deleteRawMaterial(params.row.id);
-              fetchMaterials();
+              setError('');
+              try {
+                await deleteRawMaterial(params.row.id);
+                await fetchMaterials();
+              } catch (e) {
+                setError(getErrorMessage(e, 'Failed to delete raw material.'));
+              }
             }}
           >
             Delete
@@ -60,12 +70,20 @@ export default function RawMaterials() {
 
   return (
     <Layout>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       <RawMaterialForm
         onSaved={() => {
           fetchMaterials();
           setEditingMaterial(null);
+          setError('');
         }}
         editingMaterial={editingMaterial}
+        onError={(message) => setError(message)}
       />
       <div style={{ height: 400, width: '100%', marginTop: 20 }}>
         <DataGrid

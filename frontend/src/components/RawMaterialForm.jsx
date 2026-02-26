@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createRawMaterial, updateRawMaterial } from '../api/rawMaterialApi';
 import { TextField, Button, Typography, Grid } from '@mui/material';
 
-export default function RawMaterialForm({ onSaved, editingMaterial }) {
+export default function RawMaterialForm({ onSaved, editingMaterial, onError }) {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [stockQuantity, setStockQuantity] = useState(0);
@@ -32,13 +32,20 @@ export default function RawMaterialForm({ onSaved, editingMaterial }) {
       stockQuantity: parseFloat(stockQuantity)
     };
 
-    if (editingMaterial)
-      await updateRawMaterial(editingMaterial.id, material);
-    else
-      await createRawMaterial(material);
+    try {
+      if (editingMaterial) {
+        await updateRawMaterial(editingMaterial.id, material);
+      } else {
+        await createRawMaterial(material);
+      }
 
-    resetForm();
-    onSaved();
+      resetForm();
+      onSaved();
+    } catch (e2) {
+      if (onError) {
+        onError(e2?.response?.data?.message || 'Failed to save raw material.');
+      }
+    }
   };
 
   return (
