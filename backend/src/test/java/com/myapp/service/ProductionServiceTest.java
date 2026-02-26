@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,7 +38,7 @@ class ProductionServiceTest {
     ProductionService service;
 
     @Test
-    void shouldPrioritizeHigherValueProducts() {
+    void shouldPrioritizeHigherEfficiencyProducts() {
         RawMaterial steel = new RawMaterial();
         setId(steel, 1L);
         steel.setCode("RM-STEEL");
@@ -63,17 +64,17 @@ class ProductionServiceTest {
         );
 
         when(rawMaterialRepository.listAll()).thenReturn(List.of(steel));
-        when(productRepository.findAllWithMaterialsOrderByPriceDesc())
-                .thenReturn(List.of(premiumProduct, standardProduct));
+        when(productRepository.findAllWithMaterials())
+                .thenReturn(new ArrayList<>(List.of(premiumProduct, standardProduct)));
 
         ProductionPreviewResponseDTO plan = service.previewProduction();
 
         assertEquals(1, plan.items().size());
-        assertEquals("PRM-001", plan.items().get(0).productCode());
-        assertEquals(5L, plan.items().get(0).maxQuantity());
-        assertEquals(0, BigDecimal.valueOf(500).compareTo(plan.items().get(0).totalValue()));
-        assertEquals(0, BigDecimal.valueOf(500).compareTo(plan.grandTotal()));
-        verify(productRepository).findAllWithMaterialsOrderByPriceDesc();
+        assertEquals("STD-001", plan.items().get(0).productCode());
+        assertEquals(10L, plan.items().get(0).maxQuantity());
+        assertEquals(0, BigDecimal.valueOf(600).compareTo(plan.items().get(0).totalValue()));
+        assertEquals(0, BigDecimal.valueOf(600).compareTo(plan.grandTotal()));
+        verify(productRepository).findAllWithMaterials();
         verify(rawMaterialRepository).listAll();
     }
 
