@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axiosInstance from '../api/axiosInstance';
+import { createProductMaterial, updateProductMaterial } from '../api/productMaterialApi';
 import {
   TextField,
   Button,
@@ -8,7 +9,7 @@ import {
   MenuItem
 } from '@mui/material';
 
-export default function ProductionForm({ onSaved }) {
+export default function ProductionForm({ onSaved, editingAssociation, onCancelEdit }) {
 
   const [products, setProducts] = useState([]);
   const [rawMaterials, setRawMaterials] = useState([]);
@@ -21,6 +22,19 @@ export default function ProductionForm({ onSaved }) {
     fetchProducts();
     fetchRawMaterials();
   }, []);
+
+  useEffect(() => {
+    if (!editingAssociation) {
+      setProductId('');
+      setRawMaterialId('');
+      setRequiredQuantity('');
+      return;
+    }
+
+    setProductId(String(editingAssociation.productId ?? ''));
+    setRawMaterialId(String(editingAssociation.rawMaterialId ?? ''));
+    setRequiredQuantity(String(editingAssociation.requiredQuantity ?? ''));
+  }, [editingAssociation]);
 
   const fetchProducts = async () => {
     const res = await axiosInstance.get('/products');
@@ -42,28 +56,38 @@ export default function ProductionForm({ onSaved }) {
 
     try {
 
-      await axiosInstance.post('/product-materials', {
+      const payload = {
         productId: Number(productId),
         rawMaterialId: Number(rawMaterialId),
         requiredQuantity: Number(requiredQuantity)
-      });
+      };
+
+      if (editingAssociation?.id) {
+        await updateProductMaterial(editingAssociation.id, payload);
+      } else {
+        await createProductMaterial(payload);
+      }
 
       setProductId('');
       setRawMaterialId('');
       setRequiredQuantity('');
+      if (onCancelEdit) onCancelEdit();
 
       if (onSaved) onSaved();
 
     } catch (error) {
       console.error(error.response?.data || error.message);
-      alert(error.response?.data?.message || "Error creating association");
+      alert(
+        error.response?.data?.message ||
+        (editingAssociation ? "Error updating association" : "Error creating association")
+      );
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <Typography variant="h6" sx={{ mb: 2 }}>
-        Associate Raw Material to Product
+        {editingAssociation ? 'Edit Product Material Association' : 'Associate Raw Material to Product'}
       </Typography>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -116,9 +140,15 @@ export default function ProductionForm({ onSaved }) {
 
       </Grid>
 
-      <Button variant="contained" type="submit">
-        Add Association
+      <Button variant="contained" type="submit" sx={{ mr: 1 }}>
+        {editingAssociation ? 'Update Association' : 'Add Association'}
       </Button>
+
+      {editingAssociation && (
+        <Button variant="outlined" onClick={onCancelEdit}>
+          Cancel
+        </Button>
+      )}
     </form>
   );
 }

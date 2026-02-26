@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Layout from '../components/Layout';
 import ProductionForm from '../components/ProductionForm';
-import axiosInstance from '../api/axiosInstance';
 import {
   previewProduction,
   executeProduction,
   listProductionRuns,
   getProductionRun
 } from '../api/productionApi';
+import {
+  listProductMaterials,
+  deleteProductMaterial
+} from '../api/productMaterialApi';
 
 import {
   Table,
@@ -32,6 +35,7 @@ export default function Production() {
   const [grandTotal, setGrandTotal] = useState(0);
 
   const [associations, setAssociations] = useState([]);
+  const [editingAssociation, setEditingAssociation] = useState(null);
 
   const [runs, setRuns] = useState([]);
   const [runDetails, setRunDetails] = useState(null);
@@ -74,8 +78,26 @@ export default function Production() {
   };
 
   const fetchAssociations = async () => {
-    const res = await axiosInstance.get('/product-materials');
+    const res = await listProductMaterials();
     setAssociations(Array.isArray(res.data) ? res.data : []);
+  };
+
+  const handleDeleteAssociation = async (associationId) => {
+    if (!associationId) return;
+    if (!window.confirm('Delete this association?')) return;
+
+    setError('');
+    try {
+      await deleteProductMaterial(associationId);
+      await fetchAssociations();
+      await fetchProduction();
+      if (editingAssociation?.id === associationId) {
+        setEditingAssociation(null);
+      }
+    } catch (e) {
+      console.error(e);
+      setError(e?.response?.data?.message || 'Failed to delete association.');
+    }
   };
 
   const fetchProduction = async () => {
@@ -178,7 +200,10 @@ export default function Production() {
         onSaved={() => {
           fetchAssociations();
           fetchProduction();
+          setEditingAssociation(null);
         }}
+        editingAssociation={editingAssociation}
+        onCancelEdit={() => setEditingAssociation(null)}
       />
 
       {/* Associations list */}
@@ -192,6 +217,7 @@ export default function Production() {
             <TableCell>Product</TableCell>
             <TableCell>Raw Material</TableCell>
             <TableCell align="right">Required Quantity</TableCell>
+            <TableCell align="right">Actions</TableCell>
           </TableRow>
         </TableHead>
 
@@ -201,12 +227,30 @@ export default function Production() {
               <TableCell>{assocProductLabel(a)}</TableCell>
               <TableCell>{assocRawMaterialLabel(a)}</TableCell>
               <TableCell align="right">{assocRequiredQty(a)}</TableCell>
+              <TableCell align="right">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  sx={{ mr: 1 }}
+                  onClick={() => setEditingAssociation(a)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={() => handleDeleteAssociation(a.id)}
+                >
+                  Delete
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
 
           {associations.length === 0 && (
             <TableRow>
-              <TableCell colSpan={3}>No associations found.</TableCell>
+              <TableCell colSpan={4}>No associations found.</TableCell>
             </TableRow>
           )}
         </TableBody>
@@ -226,7 +270,11 @@ export default function Production() {
           variant="contained"
           color="success"
           onClick={handleExecute}
-          disabled={loadingPreview || loadingExecute}
+          disabled={
+            loadingExecute ||
+            loadingPreview ||
+            productionList.length === 0
+          }
         >
           Execute Production
         </Button>
