@@ -17,41 +17,21 @@ This project was developed following a clean architecture approach with separate
 
 ---
 
-## 🏗️ Architecture
-
-The application follows a REST API architecture:
-
-```
-Frontend (React)
-        ↓
-Backend API (Quarkus)
-        ↓
-Service Layer
-        ↓
-Repository Layer (JPA/Hibernate)
-        ↓
-PostgreSQL
-```
-
----
-
 ## 🚀 Technologies Used
 
 ### Backend
-- Quarkus  
-- Java 17+  
+- Quarkus (Java 17)
 - JPA / Hibernate  
-- RESTEasy  
+- REST API
 - Maven  
 
 ### Frontend
-- React  
-- Redux Toolkit  
-- Axios  
-- Responsive layout (CSS / MUI / Tailwind)  
+- React + Vite
+- Redux Toolkit
+- Axios
 
 ### Database
-- PostgreSQL  
+- PostgreSQL (Docker)
 
 ### Testing
 - JUnit  
@@ -82,42 +62,81 @@ The maximum producible quantity is the **minimum possible quantity** among all m
 
 ---
 
-## 🗄️ Database Model
+# ▶️ How to Run the Project
 
-### Product
-- id  
-- code  
-- name  
-- price  
+## ✅ Prerequisites
 
-### RawMaterial
-- id  
-- code  
-- name  
-- stockQuantity  
-
-### ProductMaterial
-- id  
-- product_id  
-- raw_material_id  
-- requiredQuantity  
+- Java 17+
+- Node.js 18+
+- Docker
 
 ---
 
-## 📡 API Endpoints
+## 1️⃣ Start the Database
 
-### Product
+From the project root:
+
+```bash
+docker compose up -d
+```
+
+This will start PostgreSQL with:
+
+- Database: `mydb`
+- User: `postgres`
+- Password: `123456`
+- Port: `5432`
+
+---
+
+## 2️⃣ Run Backend (Quarkus)
+
+```bash
+cd backend
+./mvnw quarkus:dev
+```
+
+Backend available at:
 
 ```
+http://localhost:8080
+```
+
+Swagger UI
+
+```
+http://localhost:8080/q/swagger-ui
+```
+
+---
+
+## 3️⃣ Run Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend available at:
+
+```
+http://localhost:5173
+```
+
+---
+
+# 📡 Main API Endpoints
+
+### Products
+```
 GET     /products
-GET     /products/{id}
 POST    /products
 PUT     /products/{id}
 DELETE  /products/{id}
 ```
 
-### Raw Material
-
+### Raw Materials
 ```
 GET     /raw-materials
 POST    /raw-materials
@@ -125,123 +144,44 @@ PUT     /raw-materials/{id}
 DELETE  /raw-materials/{id}
 ```
 
-### Association
-
-```
-POST    /products/{id}/materials
-PUT     /products/{id}/materials/{materialId}
-DELETE  /products/{id}/materials/{materialId}
-```
-
 ### Production Suggestion
-
 ```
-GET     /production/suggestion
-```
-
----
-
-## ▶️ How to Run the Project
-
-### Prerequisites
-
-- Java 17+  
-- Maven  
-- Node.js 18+  
-- PostgreSQL  
-
----
-
-### Backend
-
-```
-cd backend
-./mvnw quarkus:dev
-```
-
-API available at:
-
-```
-http://localhost:8080
+GET /production/suggestion
 ```
 
 ---
 
-### Frontend
+# 🧠 Business Logic
+
+For each product, the system calculates the maximum possible production based on available raw material stock:
 
 ```
-cd frontend
-npm install
-npm start
+possibleQuantity = stockQuantity / requiredQuantity
 ```
 
-Application available at:
+The final producible quantity is the minimum value among all required materials.
 
-```
-http://localhost:3000
-```
+Products are prioritized by highest price.
 
 ---
 
-## 🧪 Running Tests
+# 🧪 Running Tests
 
-### Backend
+Backend:
 
-```
+```bash
 ./mvnw test
 ```
 
-### Frontend
+Frontend:
 
-```
+```bash
 npm test
 ```
 
-### E2E
-
-```
-npx cypress open
-```
-
 ---
 
-## 📦 Project Structure
+# 👨‍💻 Author
 
-### Backend
-
-```
-controller
-service
-repository
-entity
-dto
-exception
-```
-
-### Frontend
-
-```
-pages
-components
-services
-store
-hooks
-```
-
----
-
-## 🎯 Design Principles
-
-- Separation of concerns  
-- Clean Architecture  
-- RESTful API  
-- SOLID principles  
-- Testable services  
-- Responsive UI  
-
----
-
-## 📌 Author
-
-Developed by **Matheus Martini**  
+Matheus Martini  
 Full-stack Developer
