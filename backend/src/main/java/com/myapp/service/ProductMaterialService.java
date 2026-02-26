@@ -5,51 +5,48 @@ import com.myapp.dto.ProductMaterialResponseDTO;
 import com.myapp.entity.Product;
 import com.myapp.entity.ProductMaterial;
 import com.myapp.entity.RawMaterial;
+import com.myapp.exception.ConflictException;
 import com.myapp.repository.ProductMaterialRepository;
 import com.myapp.repository.ProductRepository;
 import com.myapp.repository.RawMaterialRepository;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.NotFoundException;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class ProductMaterialService {
 
-    @Inject
-    ProductMaterialRepository repository;
+    private final ProductMaterialRepository repository;
+    private final ProductRepository productRepository;
+    private final RawMaterialRepository rawMaterialRepository;
 
-    @Inject
-    ProductRepository productRepository;
-
-    @Inject
-    RawMaterialRepository rawMaterialRepository;
+    public ProductMaterialService(
+            ProductMaterialRepository repository,
+            ProductRepository productRepository,
+            RawMaterialRepository rawMaterialRepository
+    ) {
+        this.repository = repository;
+        this.productRepository = productRepository;
+        this.rawMaterialRepository = rawMaterialRepository;
+    }
 
     // CREATE
     @Transactional
     public ProductMaterialResponseDTO create(ProductMaterialRequestDTO dto) {
+        Product product = findProduct(dto.productId());
+        RawMaterial rawMaterial = findRawMaterial(dto.rawMaterialId());
 
-        validate(dto);
-
-        Product product = productRepository.findById(dto.productId);
-        if (product == null) {
-            throw new WebApplicationException("Product not found", 404);
-        }
-
-        RawMaterial rawMaterial = rawMaterialRepository.findById(dto.rawMaterialId);
-        if (rawMaterial == null) {
-            throw new WebApplicationException("Raw material not found", 404);
+        if (repository.existsByProductAndRawMaterial(product.getId(), rawMaterial.getId())) {
+            throw new ConflictException("Product material mapping already exists");
         }
 
         ProductMaterial entity = new ProductMaterial();
         entity.setProduct(product);
         entity.setRawMaterial(rawMaterial);
-        entity.setRequiredQuantity(dto.requiredQuantity);
+        entity.setRequiredQuantity(dto.requiredQuantity());
 
         repository.persist(entity);
 
@@ -59,20 +56,17 @@ public class ProductMaterialService {
     // UPDATE
     @Transactional
     public ProductMaterialResponseDTO update(Long id, ProductMaterialRequestDTO dto) {
+        ProductMaterial entity = findProductMaterial(id);
+        Product product = findProduct(dto.productId());
+        RawMaterial rawMaterial = findRawMaterial(dto.rawMaterialId());
 
-        validate(dto);
-
-        ProductMaterial entity = repository.findById(id);
-        if (entity == null) {
-            throw new WebApplicationException("ProductMaterial not found", 404);
+        if (repository.existsByProductAndRawMaterialAndIdNot(product.getId(), rawMaterial.getId(), id)) {
+            throw new ConflictException("Product material mapping already exists");
         }
-
-        Product product = productRepository.findById(dto.productId);
-        RawMaterial rawMaterial = rawMaterialRepository.findById(dto.rawMaterialId);
 
         entity.setProduct(product);
         entity.setRawMaterial(rawMaterial);
-        entity.setRequiredQuantity(dto.requiredQuantity);
+        entity.setRequiredQuantity(dto.requiredQuantity());
 
         return toDTO(entity);
     }
@@ -80,10 +74,7 @@ public class ProductMaterialService {
     // DELETE
     @Transactional
     public void delete(Long id) {
-        ProductMaterial entity = repository.findById(id);
-        if (entity == null) {
-            throw new WebApplicationException("ProductMaterial not found", 404);
-        }
+        ProductMaterial entity = findProductMaterial(id);
         repository.delete(entity);
     }
 
@@ -92,48 +83,49 @@ public class ProductMaterialService {
         return repository.listAll()
                 .stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public ProductMaterialResponseDTO findById(Long id) {
-        ProductMaterial entity = repository.findById(id);
-        if (entity == null) {
-            throw new WebApplicationException("ProductMaterial not found", 404);
-        }
-        return toDTO(entity);
+        return toDTO(findProductMaterial(id));
     }
 
     // =========================
 
-    private void validate(ProductMaterialRequestDTO dto) {
-        if (dto.productId == null) {
-            throw new WebApplicationException("Product is required", 400);
-        }
-        if (dto.rawMaterialId == null) {
-            throw new WebApplicationException("Raw material is required", 400);
-        }
-        if (dto.requiredQuantity == null ||
-            dto.requiredQuantity.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new WebApplicationException("Required quantity must be greater than zero", 400);
-        }
+    private ProductMaterialResponseDTO toDTO(ProductMaterial entity) {
+        return new ProductMaterialResponseDTO(
+                entity.getId(),
+                entity.getProduct().getId(),
+                entity.getProduct().getCode(),
+                entity.getProduct().getName(),
+                entity.getRawMaterial().getId(),
+                entity.getRawMaterial().getCode(),
+                entity.getRawMaterial().getName(),
+                entity.getRequiredQuantity()
+        );
     }
 
-    private ProductMaterialResponseDTO toDTO(ProductMaterial entity) {
+    private Product findProduct(Long id) {
+        Product product = productRepository.findById(id);
+        if (product == null) {
+            throw new NotFoundException("Product not found");
+        }
+        return product;
+    }
 
-        ProductMaterialResponseDTO dto = new ProductMaterialResponseDTO();
+    private RawMaterial findRawMaterial(Long id) {
+        RawMaterial rawMaterial = rawMaterialRepository.findById(id);
+        if (rawMaterial == null) {
+            throw new NotFoundException("Raw material not found");
+        }
+        return rawMaterial;
+    }
 
-        dto.id = entity.getId();
-
-        dto.productId = entity.getProduct().getId();
-        dto.productCode = entity.getProduct().getCode();
-        dto.productName = entity.getProduct().getName();
-
-        dto.rawMaterialId = entity.getRawMaterial().getId();
-        dto.rawMaterialCode = entity.getRawMaterial().getCode();
-        dto.rawMaterialName = entity.getRawMaterial().getName();
-
-        dto.requiredQuantity = entity.getRequiredQuantity();
-
-        return dto;
+    private ProductMaterial findProductMaterial(Long id) {
+        ProductMaterial entity = repository.findById(id);
+        if (entity == null) {
+            throw new NotFoundException("ProductMaterial not found");
+        }
+        return entity;
     }
 }
