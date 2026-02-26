@@ -8,18 +8,18 @@ public class RawMaterialMapper {
 
     public static RawMaterial toEntity(RawMaterialRequestDTO dto) {
         RawMaterial rawMaterial = new RawMaterial();
-        rawMaterial.setCode(dto.code);
-        rawMaterial.setName(dto.name);
-        rawMaterial.setStockQuantity(dto.stockQuantity);
+        rawMaterial.setCode(dto.code());
+        rawMaterial.setName(dto.name());
+        rawMaterial.setStockQuantity(dto.stockQuantity());
         return rawMaterial;
     }
 
     public static RawMaterialResponseDTO toResponse(RawMaterial entity) {
-        RawMaterialResponseDTO dto = new RawMaterialResponseDTO();
-        dto.id = entity.getId();
-        dto.code = entity.getCode();
-        dto.name = entity.getName();
-        dto.stockQuantity = entity.getStockQuantity();
-        return dto;
+        return new RawMaterialResponseDTO(
+                entity.getId(),
+                entity.getCode(),
+                entity.getName(),
+                entity.getStockQuantity()
+        );
     }
 }

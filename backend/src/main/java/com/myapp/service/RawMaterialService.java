@@ -3,25 +3,31 @@ package com.myapp.service;
 import com.myapp.dto.RawMaterialRequestDTO;
 import com.myapp.dto.RawMaterialResponseDTO;
 import com.myapp.entity.RawMaterial;
+import com.myapp.exception.ConflictException;
 import com.myapp.mapper.RawMaterialMapper;
 import com.myapp.repository.RawMaterialRepository;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class RawMaterialService {
 
-    @Inject
-    RawMaterialRepository repository;
+    private final RawMaterialRepository repository;
+
+    public RawMaterialService(RawMaterialRepository repository) {
+        this.repository = repository;
+    }
 
     @Transactional
     public RawMaterialResponseDTO create(RawMaterialRequestDTO dto) {
+        if (repository.existsByCode(dto.code())) {
+            throw new ConflictException("Raw material code already exists");
+        }
+
         RawMaterial entity = RawMaterialMapper.toEntity(dto);
         repository.persist(entity);
         return RawMaterialMapper.toResponse(entity);
@@ -31,7 +37,7 @@ public class RawMaterialService {
         return repository.listAll()
                 .stream()
                 .map(RawMaterialMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public RawMaterialResponseDTO findById(Long id) {
@@ -49,9 +55,13 @@ public class RawMaterialService {
             throw new NotFoundException("RawMaterial not found");
         }
 
-        entity.setCode(dto.code);
-        entity.setName(dto.name);
-        entity.setStockQuantity(dto.stockQuantity);
+        if (repository.existsByCodeAndIdNot(dto.code(), id)) {
+            throw new ConflictException("Raw material code already exists");
+        }
+
+        entity.setCode(dto.code());
+        entity.setName(dto.name());
+        entity.setStockQuantity(dto.stockQuantity());
 
         return RawMaterialMapper.toResponse(entity);
     }
