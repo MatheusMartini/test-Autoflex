@@ -126,23 +126,19 @@ http://localhost:5173
 
 ---
 
-# 📡 Main API Endpoints
+# 📡 API Overview
 
-### Products
-```
-GET     /products
-POST    /products
-PUT     /products/{id}
-DELETE  /products/{id}
-```
+Main resources:
 
-### Raw Materials
-```
-GET     /raw-materials
-POST    /raw-materials
-PUT     /raw-materials/{id}
-DELETE  /raw-materials/{id}
-```
+- Products
+- Raw Materials
+- Product Materials (composition)
+- Production (preview and execute)
+- Production History
+
+Full API documentation available via Swagger:
+
+http://localhost:8080/q/swagger-ui
 
 ### Production Suggestion
 ```
