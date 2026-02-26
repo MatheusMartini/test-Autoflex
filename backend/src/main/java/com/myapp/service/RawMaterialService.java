@@ -68,9 +68,19 @@ public class RawMaterialService {
 
     @Transactional
     public void delete(Long id) {
-        boolean deleted = repository.deleteById(id);
-        if (!deleted) {
+        RawMaterial entity = repository.findById(id);
+        if (entity == null) {
             throw new NotFoundException("RawMaterial not found");
         }
+
+        if (repository.isUsedInProductMaterials(id)) {
+            throw new ConflictException("Cannot delete raw material because it is associated with products");
+        }
+
+        if (repository.isUsedInProductionRuns(id)) {
+            throw new ConflictException("Cannot delete raw material because it is used in production history");
+        }
+
+        repository.delete(entity);
     }
 }

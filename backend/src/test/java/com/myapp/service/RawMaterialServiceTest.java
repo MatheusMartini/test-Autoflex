@@ -73,4 +73,41 @@ class RawMaterialServiceTest {
 
         verify(repository, never()).existsByCodeAndIdNot(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyLong());
     }
+
+    @Test
+    void shouldThrowConflictWhenDeletingRawMaterialAssociatedWithProducts() {
+        RawMaterial entity = new RawMaterial();
+        when(repository.findById(1L)).thenReturn(entity);
+        when(repository.isUsedInProductMaterials(1L)).thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> service.delete(1L));
+
+        assertEquals("Cannot delete raw material because it is associated with products", ex.getMessage());
+        verify(repository, never()).delete(entity);
+    }
+
+    @Test
+    void shouldThrowConflictWhenDeletingRawMaterialUsedInProductionHistory() {
+        RawMaterial entity = new RawMaterial();
+        when(repository.findById(2L)).thenReturn(entity);
+        when(repository.isUsedInProductMaterials(2L)).thenReturn(false);
+        when(repository.isUsedInProductionRuns(2L)).thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> service.delete(2L));
+
+        assertEquals("Cannot delete raw material because it is used in production history", ex.getMessage());
+        verify(repository, never()).delete(entity);
+    }
+
+    @Test
+    void shouldDeleteRawMaterialWhenNotAssociatedAndNotUsedInProductionHistory() {
+        RawMaterial entity = new RawMaterial();
+        when(repository.findById(3L)).thenReturn(entity);
+        when(repository.isUsedInProductMaterials(3L)).thenReturn(false);
+        when(repository.isUsedInProductionRuns(3L)).thenReturn(false);
+
+        service.delete(3L);
+
+        verify(repository).delete(entity);
+    }
 }
