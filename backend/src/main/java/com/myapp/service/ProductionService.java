@@ -67,6 +67,7 @@ public class ProductionService {
 
         ProductionPreviewResponseDTO plan = calculatePlan(availableStock);
 
+        // Persist updated stock
         for (Map.Entry<Long, BigDecimal> entry : availableStock.entrySet()) {
             RawMaterial rawMaterial = rawMaterialById.get(entry.getKey());
             if (rawMaterial == null) {
@@ -83,7 +84,6 @@ public class ProductionService {
             ProductionRunItem ri = new ProductionRunItem();
             ri.run = run;
 
-            // link product (optional but useful)
             Product p = productRepository.findById(item.productId());
             ri.product = p;
 
@@ -123,7 +123,30 @@ public class ProductionService {
     }
 
     private ProductionPreviewResponseDTO calculatePlan(Map<Long, BigDecimal> availableStock) {
-        List<Product> products = productRepository.findAllWithMaterialsOrderByPriceDesc();
+        List<Product> products = productRepository.findAllWithMaterials();
+
+        products.sort((a, b) -> {
+            BigDecimal sa = scoreByBottleneckEfficiency(a, availableStock);
+            BigDecimal sb = scoreByBottleneckEfficiency(b, availableStock);
+
+            int cmp = sb.compareTo(sa); // desc
+            if (cmp != 0) return cmp;
+
+            BigDecimal pa = (a == null || a.getPrice() == null) ? BigDecimal.ZERO : a.getPrice();
+            BigDecimal pb = (b == null || b.getPrice() == null) ? BigDecimal.ZERO : b.getPrice();
+            cmp = pb.compareTo(pa); // price desc
+            if (cmp != 0) return cmp;
+
+            // desempate extra: produto que consome menos do gargalo primeiro
+            BigDecimal ca = bottleneckRequiredQty(a, availableStock);
+            BigDecimal cb = bottleneckRequiredQty(b, availableStock);
+            cmp = ca.compareTo(cb); // menor consumo primeiro
+            if (cmp != 0) return cmp;
+
+            Long ia = (a == null || a.getId() == null) ? Long.MAX_VALUE : a.getId();
+            Long ib = (b == null || b.getId() == null) ? Long.MAX_VALUE : b.getId();
+            return ia.compareTo(ib);
+        });
 
         List<ProductionPreviewItemDTO> items = new ArrayList<>();
         BigDecimal grandTotal = BigDecimal.ZERO;
@@ -160,6 +183,67 @@ public class ProductionService {
         }
 
         return new ProductionPreviewResponseDTO(items, grandTotal);
+    }
+
+    /**
+     * score = unitPrice / requiredQuantity
+     */
+    private BigDecimal scoreByBottleneckEfficiency(Product product, Map<Long, BigDecimal> availableStock) {
+        if (product == null || product.getMaterials() == null || product.getMaterials().isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal unitPrice = product.getPrice();
+        if (unitPrice == null || unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        ProductMaterial bottleneck = findBottleneckMaterial(product, availableStock);
+        if (bottleneck == null) return BigDecimal.ZERO;
+
+        BigDecimal req = bottleneck.getRequiredQuantity();
+        if (req == null || req.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
+
+        return unitPrice.divide(req, 12, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal bottleneckRequiredQty(Product product, Map<Long, BigDecimal> availableStock) {
+        ProductMaterial bottleneck = findBottleneckMaterial(product, availableStock);
+        if (bottleneck == null || bottleneck.getRequiredQuantity() == null) return new BigDecimal("999999999");
+        return bottleneck.getRequiredQuantity();
+    }
+
+    /**
+     * (stock / requiredQuantity)
+     */
+    private ProductMaterial findBottleneckMaterial(Product product, Map<Long, BigDecimal> availableStock) {
+        if (product == null || product.getMaterials() == null) return null;
+
+        ProductMaterial bottleneck = null;
+        BigDecimal worstRatio = null;
+
+        for (ProductMaterial pm : product.getMaterials()) {
+            if (pm == null || pm.getRawMaterial() == null || pm.getRawMaterial().getId() == null) {
+                continue;
+            }
+
+            BigDecimal req = pm.getRequiredQuantity();
+            if (req == null || req.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+
+            Long rawId = pm.getRawMaterial().getId();
+            BigDecimal stock = availableStock.getOrDefault(rawId, BigDecimal.ZERO);
+
+            BigDecimal ratio = stock.divide(req, 12, RoundingMode.HALF_UP);
+
+            if (worstRatio == null || ratio.compareTo(worstRatio) < 0) {
+                worstRatio = ratio;
+                bottleneck = pm;
+            }
+        }
+
+        return bottleneck;
     }
 
     private long calculateMaxProducible(Product product, Map<Long, BigDecimal> availableStock) {
