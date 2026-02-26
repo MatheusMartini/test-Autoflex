@@ -1,13 +1,15 @@
 package com.myapp.resource;
 
-import com.myapp.dto.ProductionResponseDTO;
+import com.myapp.dto.ProductionPreviewResponseDTO;
 import com.myapp.service.ProductionService;
 
 import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
-
-import java.util.List;
 
 @Path("/production")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -17,17 +19,15 @@ public class ProductionResource {
     @Inject
     ProductionService service;
 
-    // PREVIEW - does not change stock
     @GET
     @Path("/preview")
-    public List<ProductionResponseDTO> preview() {
-        return service.calculateProduction(false);
+    public ProductionPreviewResponseDTO preview() {
+        return service.previewProduction();
     }
 
-    // EXECUTE - deducts stock
     @POST
     @Path("/execute")
-    public List<ProductionResponseDTO> execute() {
-        return service.calculateProduction(true);
+    public ProductionPreviewResponseDTO execute() {
+        return service.executeProduction();
     }
 }

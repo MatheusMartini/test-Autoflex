@@ -3,6 +3,7 @@ package com.myapp.service;
 import com.myapp.dto.ProductRequestDTO;
 import com.myapp.dto.ProductResponseDTO;
 import com.myapp.entity.Product;
+import com.myapp.exception.ConflictException;
 import com.myapp.mapper.ProductMapper;
 import com.myapp.repository.ProductRepository;
 
@@ -11,8 +12,6 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.NotFoundException;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
 @ApplicationScoped
 public class ProductService {
 
@@ -26,7 +25,7 @@ public class ProductService {
         return repository.listAll()
                 .stream()
                 .map(ProductMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public ProductResponseDTO findById(Long id) {
@@ -38,9 +37,8 @@ public class ProductService {
 
     @Transactional
     public ProductResponseDTO create(ProductRequestDTO dto) {
-
-        if (repository.findByCode(dto.code()).isPresent()) {
-            throw new IllegalArgumentException("Product code already exists");
+        if (repository.existsByCode(dto.code())) {
+            throw new ConflictException("Product code already exists");
         }
 
         Product product = ProductMapper.toEntity(dto);
@@ -55,7 +53,10 @@ public class ProductService {
         Product product = repository.findByIdOptional(id)
                 .orElseThrow(() -> new NotFoundException("Product not found"));
 
-        // Usando setters
+        if (repository.existsByCodeAndIdNot(dto.code(), id)) {
+            throw new ConflictException("Product code already exists");
+        }
+
         product.setCode(dto.code());
         product.setName(dto.name());
         product.setPrice(dto.price());
